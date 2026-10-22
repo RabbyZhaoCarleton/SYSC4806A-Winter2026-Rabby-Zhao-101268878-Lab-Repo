@@ -9,11 +9,26 @@
 
 <p th:if="${#lists.isEmpty(addressBooks)}">No address books yet.</p>
 
-<ul th:unless="${#lists.isEmpty(addressBooks)}">
-    <li th:each="book : ${addressBooks}">
-        <a th:href="@{/view/addressbooks/{id}(id=${book.id})}"
-           th:text="'Address Book #' + ${book.id} + ' (' + ${#lists.size(book.buddyList)} + ' buddies)'">Address Book</a>
-    </li>
-</ul>
+<table border="1" th:unless="${#lists.isEmpty(addressBooks)}">
+    <thead>
+    <tr>
+        <th>ID</th>
+        <th>Buddies</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="book : ${addressBooks}">
+        <td><a th:href="@{/view/addressbooks/{id}(id=${book.id})}"
+               th:text="'Address Book #' + ${book.id}">Address Book</a></td>
+        <td th:text="${#lists.size(book.buddyList)}">0</td>
+    </tr>
+    </tbody>
+</table>
+
+<br>
+
+<form th:action="@{/view/addressbooks}" method="post">
+    <input type="submit" value="Create New Address Book">
+</form>
 </body>
 </html>
