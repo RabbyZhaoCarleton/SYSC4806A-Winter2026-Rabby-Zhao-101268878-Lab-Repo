@@ -258,6 +258,7 @@ class AddressBookControllerTest {
                 .consumeWith(result -> assertThat(result.getResponseBody())
                         .contains("<h1>Address Books</h1>")
                         .contains("href=\"/view/addressbooks/" + bookId + "\"")
-                        .contains("Address Book #" + bookId + " (1 buddies)"));
+                        .contains("Address Book #" + bookId + "</a>")
+                        .contains("<td>1</td>"));
     }
 }

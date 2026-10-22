@@ -248,10 +248,14 @@ class WebLayerTest {
                 .expectStatus().isOk()
                 .expectBody(String.class)
                 .consumeWith(result -> assertThat(result.getResponseBody())
+                        .contains("<th>ID</th>")
                         .contains("href=\"/view/addressbooks/1\"")
-                        .contains("Address Book #1 (1 buddies)")
+                        .contains("Address Book #1")
+                        .contains("<td>1</td>")
                         .contains("href=\"/view/addressbooks/2\"")
-                        .contains("Address Book #2 (0 buddies)")
+                        .contains("Address Book #2")
+                        .contains("<td>0</td>")
+                        .contains("action=\"/view/addressbooks\"")
                         .doesNotContain("No address books yet."));
     }
 
@@ -265,6 +269,68 @@ class WebLayerTest {
                 .expectBody(String.class)
                 .consumeWith(result -> assertThat(result.getResponseBody())
                         .contains("No address books yet.")
-                        .doesNotContain("<li>"));
+                        .contains("Create New Address Book")
+                        .doesNotContain("<table"));
+    }
+
+    @Test
+    void createAddressBookFormRedirectsToHomepage() {
+        restTestClient.post().uri("/view/addressbooks")
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                .exchange()
+                .expectStatus().is3xxRedirection()
+                .expectHeader().location("/");
+
+        verify(addressBookRepository).save(any(AddressBook.class));
+    }
+
+    @Test
+    void addressBookPageHasAddBuddyForm() {
+        when(addressBookRepository.findById(1L)).thenReturn(book);
+
+        restTestClient.get().uri("/view/addressbooks/1")
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(String.class)
+                .consumeWith(result -> assertThat(result.getResponseBody())
+                        .contains("action=\"/view/addressbooks/1/buddies\"")
+                        .contains("name=\"name\"")
+                        .contains("name=\"email\"")
+                        .contains("name=\"phone\"")
+                        .contains("name=\"address\"")
+                        .contains("name=\"nickname\"")
+                        .contains("href=\"/\""));
+    }
+
+    @Test
+    void addBuddyFormAddsBuddyAndRedirectsBack() {
+        when(addressBookRepository.findById(1L)).thenReturn(book);
+
+        restTestClient.post().uri("/view/addressbooks/1/buddies")
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                .body("name=Jane&email=Jane%40gmail.com&phone=987-654-3210&address=456+Elm+St&nickname=JJ")
+                .exchange()
+                .expectStatus().is3xxRedirection()
+                .expectHeader().location("/view/addressbooks/1");
+
+        verify(addressBookRepository).save(argThat(saved ->
+                saved.getBuddyList().size() == 1
+                        && "Jane".equals(saved.getBuddyList().get(0).getName())
+                        && "Jane@gmail.com".equals(saved.getBuddyList().get(0).getEmail())
+                        && "456 Elm St".equals(saved.getBuddyList().get(0).getAddress())
+                        && "JJ".equals(saved.getBuddyList().get(0).getNickname())));
+    }
+
+    @Test
+    void addBuddyFormToMissingBookReturns404() {
+        when(addressBookRepository.findById(5L)).thenReturn(null);
+
+        restTestClient.post().uri("/view/addressbooks/5/buddies")
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                .body("name=Ghost")
+                .exchange()
+                .expectStatus().isNotFound();
+
+        verify(addressBookRepository, never()).save(any(AddressBook.class));
     }
 }
